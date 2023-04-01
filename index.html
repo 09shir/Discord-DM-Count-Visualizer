@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-Zenh87qX5JnK2Jl0vWa8Ck2rdkQ2Bzep5IDxbcnCeuOxjzrPF/et3URy9Bv1WTRi" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-OERcA2EqjJCMA+/3y+gxIOqMEjwtxJY7qPCqsdltbNJuaOe923+mo//f6V8Qbsw3" crossorigin="anonymous"></script>
+
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
+
+    <title>Document</title>
+
+    <style>
+        .form-left {
+          width: 40%;
+          float: left;
+          padding: 20px;
+        }
+        .form-right {
+          width: 60%;
+          float: left;
+          padding: 0px;
+        }
+      </style>
+
+</head>
+<body>
+
+
+    <div id="button-container"></div>
+    <ul id="showFileName"></ul>
+
+    <form id="myForm">
+      <input type="file" id="csvFile" accept=".csv" />
+      <br />
+      <input type="submit" value="Submit" />
+    </form>
+
+    <div id="myChart" style="max-width:700px; height:800px"></div>
+
+    
+    
+</body>
+<script>
+
+    test()
+
+    // pre-loading google charts
+    google.charts.load('current',{packages:['corechart']});
+    google.charts.setOnLoadCallback(test);
+
+    const myForm = document.getElementById("myForm");
+    const csvFile = document.getElementById("csvFile");
+
+    myForm.addEventListener("submit", function (e) {
+      e.preventDefault();
+      const input = csvFile.files[0];
+      const reader = new FileReader();
+
+      reader.onload = function (e) {
+        const text = e.target.result;
+        const data = csvToArray(text);
+        //document.write(JSON.stringify(data));
+        console.log(data)
+        messageCountGraph(data)
+      };
+
+      reader.readAsText(input);
+    });
+    
+
+    function csvToArray(str, delimiter = ",") {
+      // slice from start of text to the first \n index
+      // use split to create an array from string by delimiter
+      const headers = str.slice(0, str.indexOf("\n")).split(delimiter);
+
+      // slice from \n index + 1 to the end of the text
+      // use split to create an array of each csv value row
+      const rows = str.slice(str.indexOf("\n") + 1).split("\n");
+
+      // Map the rows
+      // split values from each row into an array
+      // use headers.reduce to create an object
+      // object properties derived from headers:values
+      // the object passed as an element of the array
+      const arr = rows.map(function (row) {
+        const values = row.split(delimiter);
+        const el = headers.reduce(function (object, header, index) {
+          object[header] = values[index];
+          return object;
+        }, {});
+        return el;
+      });
+
+      // return the array
+      return arr;
+    }
+
+
+    function messageCountGraph(data){
+
+        var chartData = [['Date', 'Count']]
+
+        for (let i = 0; i < data.length-1; i++){
+          if (data[i].Contents != undefined){
+            if (!isNaN(Date.parse(data[i].Timestamp.slice(0,10)))){
+              var date = data[i].Timestamp.slice(0,7)
+
+              if (chartData[chartData.length-1][0] != date){
+                chartData.push([date, 0])
+              }
+              chartData[chartData.length-1][1]++
+            }
+          }
+          
+        }
+
+        console.log(chartData)
+
+        const data2 = google.visualization.arrayToDataTable(chartData);
+        const options = {
+          title: 'Messages Count That You Sent to User',
+          isStacked: true,
+          width:1200,
+          height:40*chartData.length
+        };
+        const chart = new google.visualization.BarChart(document.getElementById('myChart'));
+        chart.draw(data2, options);
+    }
+
+    function test(){
+
+var id = []
+var names = []
+
+fetch('./messages/index.json')
+.then((response) => response.json())
+.then((json) => { 
+
+    id = Object.keys(json);
+    names = Object.values(json)
+
+    var index = 0;
+
+    names.forEach((item) =>{
+
+        if (item.includes("Direct Message")){
+            let newBtn = document.createElement('span');
+            // newBtn.innerHTML = '<button onclick="print(' + id[index] + '); location.href=' + "'dm.html';" + '">' + item + '</>';
+            newBtn.innerHTML = '<button onclick="print(' + id[index] + ');">' + item + '</>';
+            document.querySelector('#button-container').appendChild(newBtn);
+        }
+        index++;
+    })
+});
+
+}
+
+function print(id){
+/*localStorage.setItem("id", 'c' + id)*/
+console.log(localStorage.getItem("id"));
+let textArea = document.getElementById("showFileName");
+
+if( textArea.firstChild ){
+    textArea.removeChild( textArea.firstChild );
+}
+
+let li = document.createElement("li");
+li.innerText = 'Please upload messages.csv file from folder c' + id;
+textArea.appendChild(li);
+}
+
+
+
+    
+  </script>
+</html>
